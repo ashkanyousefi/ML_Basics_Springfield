@@ -1,5 +1,5 @@
 
-    # Region Imports ***
+#Imports
 import matplotlib.pyplot as plt
 import torch
 from torch import nn, optim
@@ -12,37 +12,38 @@ from collections import OrderedDict
 from torch.optim import lr_scheduler
 from torch.autograd import Variable
 import argparse
-
-#endregion
-
-def main():
+from utils import load_checkpoint, load_cat_names
+import json
+ 
+def main():  
     args = parse_args()
-    gpu = args.gpu
-    model = load_checkpoint(args.checkpoint)
-    cat_to_name = load_cat_names(args.category_names)
+    checkpoint=args.checkpoint
+    image_path=args.image_path
+    category_names=args.category_names
+    gpu=args.gpu
+    top_k=args.top_k
 
-    if args.filepath:
-        img_path = args.image_path
-    else:
-        print('Cannot run prediction ..')
-        img_path = input("Please provide path to image: ")
+    model = load_checkpoint(checkpoint)
+    
+    with open('cat_to_name.json', 'r') as f:
+        cat_to_name = json.load(f)
         
-    probs, classes = predict(img_path, model, int(args.top_k), gpu)
+    probs, classes = predict(image_path, model, top_k, gpu)
 
     print('\n======')
-    print('The filepath of the selected image is: ' + img_path, '\n')    
+    print('The filepath of the selected image is: ' + image_path, '\n')    
     print('The top K CLASSES for the selected image are: \n', classes, '\n')
     print('The top K PROBABILITIES for the selected image are: \n ', probs, '\n')   
     print('The top K CATEGORY NAMES for the selected image are: \n', [cat_to_name[x].title() for x in classes])
     print('======\n')
 
-if __name__ == "__main__":
-    main()
+    if __name__ == "__main__":
+        main()
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Prediction")
-    parser.add_argument('checkpoint', action='store', default='ashlaki.pth')
+    parser.add_argument('--checkpoint', action='store', default='ashlaki.pth')
     parser.add_argument('-t', '--top_k', dest='top_k', default='1',
                        help='number of top probabilities - default: 1')
     parser.add_argument('-f', '--image_path', dest='image_path', default=None,
@@ -51,7 +52,6 @@ def parse_args():
                        help='json file with categories/classes to real name mapping')
     parser.add_argument('-g', '--gpu', action='store_true', default=True,
                        help='specify if processing on gpu is preferred')
-                       
     return parser.parse_args()
 
 def process_image(image_path):
@@ -99,3 +99,18 @@ def predict(image_path, model, topk, gpu):
         
     return top_p, top_flowers
 
+
+def load_model(checkpoint_path):
+    
+    checkpoint = torch.load(checkpoint_path)
+    model=checkpoint['model']
+
+    for param in model.parameters():
+        param.requires_grad = False
+
+    model.load_state_dict(checkpoint['state_dict'])
+    model.class_to_idx = checkpoint['class_to_idx']
+    model.classifier = checkpoint['classifier']
+    optimizer = checkpoint['optimizer']
+    
+    return model
