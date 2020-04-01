@@ -41,12 +41,13 @@ def main():
     valid_dir = data_dir + '/valid'
     test_dir = data_dir + '/test'
 
+    image_transformation(data_dir,train_dir,valid_dir,test_dir)
     create_model(args.arch)
 
 
 # Image transformation
 
-def image_transformation():
+def image_transformation(data_dir,train_dir,valid_dir,test_dir):
     data_transforms_train = transforms.Compose([transforms.Resize(255), transforms.RandomResizedCrop(224),
         transforms.RandomRotation(30),
         transforms.RandomCrop(224),
@@ -73,8 +74,9 @@ def image_transformation():
         image_datasets_test, batch_size=64)
 
     class_to_idx = image_datasets_train.class_to_idx
-# End of Image transformation
-#Import labels
+
+
+
 with open('cat_to_name.json', 'r') as f:
     cat_to_name = json.load(f)
 
